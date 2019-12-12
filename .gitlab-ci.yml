@@ -14,7 +14,6 @@ build:
     - yarn --pure-lockfile --cache-folder .yarn
   script:
     - yarn build:lib
-    - yarn build:app
   artifacts:
     paths:
       - dist/
