@@ -1,0 +1,31 @@
+stages:
+  - build
+  - publish
+
+cache:
+  paths:
+    - .yarn/
+
+image: node:12
+
+build:
+  stage: build
+  before_script:
+    - yarn --pure-lockfile --cache-folder .yarn
+  script:
+    - yarn build:lib
+    - yarn build:app
+  artifacts:
+    paths:
+      - dist/
+      - .local/
+
+deploy:
+  only:
+    - tags
+  stage: publish
+  before_script:
+    - cd dist
+    - echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' > .npmrc
+  script:
+    - yarn publish --access public

@@ -22,7 +22,7 @@ const MOCK_DOCS: Documentation = {
   }
 };
 
-function App() {
+function App({ localDocs = MOCK_DOCS }: { localDocs?: Documentation }) {
   const [, forceUpdate] = useState({});
 
   return (
@@ -34,8 +34,8 @@ function App() {
           forceUpdate({});
         }}
         getClass={async name => {
-          if (name in MOCK_DOCS.classes) {
-            return MOCK_DOCS.classes[name];
+          if (name in localDocs.classes) {
+            return localDocs.classes[name];
           }
           throw new Error(`Class not found: ${name}`);
         }}
@@ -45,14 +45,14 @@ function App() {
           const classes: ClassDoc[] = [];
           const subNamespaces = new Set<string>();
 
-          for (const qn in MOCK_DOCS.classes) {
+          for (const qn in localDocs.classes) {
             if (
-              MOCK_DOCS.classes.hasOwnProperty(qn) &&
+              localDocs.classes.hasOwnProperty(qn) &&
               qn.startsWith(`${name}/`)
             ) {
               const qnn = qn.split("/");
               if (qnn.length === segments + 1) {
-                classes.push(MOCK_DOCS.classes[qn]);
+                classes.push(localDocs.classes[qn]);
               } else {
                 subNamespaces.add(qnn.slice(0, segments + 1).join("/"));
               }
@@ -69,4 +69,9 @@ function App() {
   );
 }
 
-ReactDOM.render(<App />, document.getElementById("root"));
+fetch("/docs.json")
+  .then(response => response.json())
+  .catch(() => undefined)
+  .then(docs =>
+    ReactDOM.render(<App localDocs={docs} />, document.getElementById("root"))
+  );

@@ -1,4 +1,6 @@
 const path = require("path");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const HtmlWebpackHarddiskPlugin = require("html-webpack-harddisk-plugin");
 
 module.exports = {
   entry: "./src/Local/index.tsx",
@@ -10,8 +12,15 @@ module.exports = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: "ts-loader",
-        exclude: /node_modules/
+        exclude: /node_modules/,
+        use: {
+          loader: "ts-loader",
+          options: {
+            compilerOptions: {
+              declaration: false
+            }
+          }
+        }
       }
     ]
   },
@@ -19,6 +28,13 @@ module.exports = {
     extensions: [".tsx", ".ts", ".js"]
   },
   devServer: {
-    index: "./src/Local/index.html"
-  }
+    index: "index.html"
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, "src", "Local", "index.html"),
+      alwaysWriteToDisk: true
+    }),
+    new HtmlWebpackHarddiskPlugin()
+  ]
 };
