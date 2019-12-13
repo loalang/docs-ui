@@ -1,6 +1,6 @@
 {
   "name": "@loalang/docs",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "scripts": {
     "build:lib": "rm -rf dist && tsc && node -e \"(() => { const {name, version, dependencies, peerDependencies} = require('./package.json'), pkg = {name, version, dependencies, peerDependencies}; require('fs').writeFileSync('dist/package.json', JSON.stringify(pkg, null, 2)) })()\"",
     "build:app": "webpack --mode production",
