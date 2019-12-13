@@ -1,15 +1,16 @@
 import ReactDOM from "react-dom";
-import React, { useState } from "react";
+import React from "react";
 import { Docs } from "../Docs/Docs";
 import { Documentation, ClassDoc } from "../Docs/Documentation";
 import { Reset } from "@loalang/ui-toolbox/Reset";
+import { Router } from "@reach/router";
 
 const MOCK_DOCS: Documentation = {
   classes: {
     "Loa/Some/Class/Here": {
       name: {
         name: "Here",
-        namespace: "Some/Class"
+        namespace: "Loa/Some/Class"
       },
       subClasses: [],
       superClasses: [],
@@ -18,21 +19,43 @@ const MOCK_DOCS: Documentation = {
           selector: "do:thing:"
         }
       }
+    },
+    "My/Package/Class/Here": {
+      name: {
+        name: "Here",
+        namespace: "My/Package/Class"
+      },
+      subClasses: [],
+      superClasses: [],
+      behaviours: {}
     }
   }
 };
 
-function App({ localDocs = MOCK_DOCS }: { localDocs?: Documentation }) {
-  const [, forceUpdate] = useState({});
+function App({
+  localDocs = MOCK_DOCS,
+  "*": uri,
+  navigate
+}: {
+  path: string;
+  navigate?: (to: string) => void;
+  "*"?: string;
+  localDocs?: Documentation;
+}) {
+  const rootNamespaces = new Set<string>();
+
+  for (const className in localDocs.classes) {
+    if (localDocs.classes.hasOwnProperty(className)) {
+      rootNamespaces.add(className.split("/").shift()!);
+    }
+  }
 
   return (
     <Reset>
       <Docs
-        path={location.hash}
-        onNavigate={path => {
-          location.hash = path;
-          forceUpdate({});
-        }}
+        rootNamespaces={Array.from(rootNamespaces)}
+        path={uri!}
+        onNavigate={navigate!}
         getClass={async name => {
           if (name in localDocs.classes) {
             return localDocs.classes[name];
@@ -73,5 +96,10 @@ fetch("/docs.json")
   .then(response => response.json())
   .catch(() => undefined)
   .then(docs =>
-    ReactDOM.render(<App localDocs={docs} />, document.getElementById("root"))
+    ReactDOM.render(
+      <Router>
+        <App path="/*" localDocs={docs} />
+      </Router>,
+      document.getElementById("root")
+    )
   );

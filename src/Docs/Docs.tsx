@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { PageHeading } from "@loalang/ui-toolbox/Typography/TextStyle/PageHeading";
 import { ClassDoc } from "./Documentation";
 import { Menu, MenuItemChild } from "./Menu";
@@ -7,6 +7,8 @@ import { NavigationProvider, useNavigation } from "./Navigation";
 
 export interface DocsProps {
   path: string;
+  rootNamespaces: string[];
+  basePath?: string;
   onNavigate: (path: string) => void;
   getClass: (name: string) => Promise<ClassDoc>;
   getSubNamespaces: (
@@ -14,7 +16,14 @@ export interface DocsProps {
   ) => Promise<{ subNamespaces: string[]; classes: ClassDoc[] }>;
 }
 
-export function Docs({ getSubNamespaces, onNavigate, path }: DocsProps) {
+export function Docs({
+  getSubNamespaces,
+  onNavigate,
+  path,
+  basePath,
+  rootNamespaces,
+  getClass
+}: DocsProps) {
   async function getChildren(name: string): Promise<MenuItemChild[]> {
     const { classes, subNamespaces } = await getSubNamespaces(name);
 
@@ -32,12 +41,7 @@ export function Docs({ getSubNamespaces, onNavigate, path }: DocsProps) {
   }
 
   return (
-    <NavigationProvider
-      navigation={{
-        path,
-        navigate: onNavigate
-      }}
-    >
+    <NavigationProvider path={path} basePath={basePath} onNavigate={onNavigate}>
       <div
         className={css`
           display: grid;
@@ -46,23 +50,64 @@ export function Docs({ getSubNamespaces, onNavigate, path }: DocsProps) {
       >
         <Menu
           getChildren={getChildren}
-          roots={[{ name: "Loa", hasChildren: true }]}
+          roots={rootNamespaces.map(name => ({ name, hasChildren: true }))}
         />
-        <Page />
+        <Page getClass={getClass} />
       </div>
     </NavigationProvider>
   );
 }
 
-function Page() {
+function usePromise<T>(
+  getPromise: () => Promise<T>
+): { isLoading: boolean; error: Error | null; result: T | null } {
+  const [isLoading, setIsLoading] = useState(true);
+  const [result, setResult] = useState(null as T | null);
+  const [error, setError] = useState(null as Error | null);
+
+  useEffect(() => {
+    setError(null);
+    setIsLoading(true);
+    getPromise()
+      .then(setResult)
+      .catch(setError)
+      .finally(() => setIsLoading(false));
+  }, [getPromise]);
+
+  return { result, isLoading, error };
+}
+
+function Page({ getClass }: { getClass: (name: string) => Promise<ClassDoc> }) {
   const navigation = useNavigation();
 
-  switch (navigation.path) {
-    case "":
-    case "/":
-      return <PageHeading>Home</PageHeading>;
-
-    default:
-      return <PageHeading>Not Found</PageHeading>;
+  if (navigation.path === "/") {
+    return <>Home</>;
   }
+
+  return <ClassPage getClass={getClass} />;
+}
+
+function ClassPage({
+  getClass
+}: {
+  getClass: (name: string) => Promise<ClassDoc>;
+}) {
+  const navigation = useNavigation();
+
+  const { isLoading, error, result } = usePromise(
+    useCallback(() => getClass(navigation.path.slice(1)), [
+      getClass,
+      navigation.path
+    ])
+  );
+
+  if (isLoading) {
+    return <>Loading...</>;
+  }
+
+  if (error != null) {
+    return <PageHeading>{error.message}</PageHeading>;
+  }
+
+  return <PageHeading>{result!.name.name}</PageHeading>;
 }

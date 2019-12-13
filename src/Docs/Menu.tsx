@@ -20,6 +20,7 @@ export function Menu({
     >
       {roots.map(root => (
         <MenuItem
+          key={root.name}
           level={0}
           name={root.name}
           hasChildren={root.hasChildren}
@@ -138,7 +139,6 @@ function MenuItem({ name, hasChildren, getChildren, level }: MenuItemProps) {
         {children.map(({ name, hasChildren }, i) => (
           <li key={i}>
             <MenuItem
-              key={i}
               name={name}
               hasChildren={hasChildren}
               getChildren={getChildren}

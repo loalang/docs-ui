@@ -2,20 +2,40 @@ import React, { createContext, useContext, ReactNode } from "react";
 
 export interface Navigation {
   path: string;
+  basePath: string;
   navigate: (path: string) => void;
 }
 
 const NavigationContext = createContext<Navigation | null>(null);
 
 export function NavigationProvider({
-  navigation,
+  path,
+  basePath = "",
+  onNavigate,
   children
 }: {
-  navigation: Navigation;
+  path: string;
+  basePath?: string;
+  onNavigate: (path: string) => void;
   children: ReactNode;
 }) {
+  const basePathSegments = basePath.split("/").filter(Boolean);
+  const pathSegments = path
+    .split("/")
+    .filter(Boolean)
+    .slice(basePathSegments.length);
+
   return (
-    <NavigationContext.Provider value={navigation}>
+    <NavigationContext.Provider
+      value={{
+        basePath:
+          basePathSegments.length === 0
+            ? "/"
+            : `/${basePathSegments.join("/")}/`,
+        path: `/${pathSegments.join("/")}`,
+        navigate: onNavigate
+      }}
+    >
       {children}
     </NavigationContext.Provider>
   );
@@ -41,14 +61,15 @@ export function Link({
   className?: string;
 }) {
   const navigation = useNavigation();
-
+  const href = to.startsWith("/") ? `${navigation.basePath}${to.slice(1)}` : to;
   return (
     <a
       className={className}
-      href={to}
+      href={href}
       onClick={e => {
         e.preventDefault();
-        navigation.navigate(to);
+        console.log(href);
+        navigation.navigate(href);
       }}
     >
       {children}

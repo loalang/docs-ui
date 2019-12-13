@@ -6,7 +6,8 @@ module.exports = {
   entry: "./src/Local/index.tsx",
   output: {
     filename: "bundle.js",
-    path: path.resolve(__dirname, ".local")
+    path: path.resolve(__dirname, ".local"),
+    publicPath: "/"
   },
   module: {
     rules: [
@@ -28,7 +29,8 @@ module.exports = {
     extensions: [".tsx", ".ts", ".js"]
   },
   devServer: {
-    index: "index.html"
+    index: "index.html",
+    historyApiFallback: true
   },
   plugins: [
     new HtmlWebpackPlugin({
