@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { PageHeading } from "@loalang/ui-toolbox/Typography/TextStyle/PageHeading";
+import React, { createContext, useContext, useCallback } from "react";
 import { ClassDoc } from "./Documentation";
 import { Menu, MenuItemChild } from "./Menu";
 import { css } from "emotion";
-import { NavigationProvider, useNavigation } from "./Navigation";
+import { NavigationProvider } from "./Navigation";
+import { Page } from "./Page";
+import { usePromise } from "./usePromise";
 
 export interface DocsProps {
   path: string;
@@ -16,14 +17,34 @@ export interface DocsProps {
   ) => Promise<{ subNamespaces: string[]; classes: ClassDoc[] }>;
 }
 
-export function Docs({
-  getSubNamespaces,
-  onNavigate,
-  path,
-  basePath,
-  rootNamespaces,
-  getClass
-}: DocsProps) {
+const DocsContext = createContext(null as DocsProps | null);
+
+function useDocsContext(): DocsProps {
+  const ctx = useContext(DocsContext);
+
+  if (ctx == null) {
+    throw new Error("Must be in DocsContext");
+  }
+
+  return ctx;
+}
+
+export function useClass(
+  name: string
+): { isLoading: boolean; error: Error | null; result: ClassDoc | null } {
+  const { getClass } = useDocsContext();
+
+  return usePromise(useCallback(() => getClass(name), [getClass]));
+}
+
+export function Docs(props: DocsProps) {
+  const {
+    getSubNamespaces,
+    onNavigate,
+    path,
+    basePath,
+    rootNamespaces
+  } = props;
   async function getChildren(name: string): Promise<MenuItemChild[]> {
     const { classes, subNamespaces } = await getSubNamespaces(name);
 
@@ -41,73 +62,27 @@ export function Docs({
   }
 
   return (
-    <NavigationProvider path={path} basePath={basePath} onNavigate={onNavigate}>
-      <div
-        className={css`
-          display: grid;
-          grid-template-columns: auto 1fr;
-        `}
+    <DocsContext.Provider value={props}>
+      <NavigationProvider
+        path={path}
+        basePath={basePath}
+        onNavigate={onNavigate}
       >
-        <Menu
-          getChildren={getChildren}
-          roots={rootNamespaces.map(name => ({ name, hasChildren: true }))}
-        />
-        <Page getClass={getClass} />
-      </div>
-    </NavigationProvider>
+        <div
+          className={css`
+            display: grid;
+            grid-template-columns: auto 1fr;
+          `}
+        >
+          <Menu
+            getChildren={getChildren}
+            roots={rootNamespaces.map(name => ({ name, hasChildren: true }))}
+          />
+          <div>
+            <Page />
+          </div>
+        </div>
+      </NavigationProvider>
+    </DocsContext.Provider>
   );
-}
-
-function usePromise<T>(
-  getPromise: () => Promise<T>
-): { isLoading: boolean; error: Error | null; result: T | null } {
-  const [isLoading, setIsLoading] = useState(true);
-  const [result, setResult] = useState(null as T | null);
-  const [error, setError] = useState(null as Error | null);
-
-  useEffect(() => {
-    setError(null);
-    setIsLoading(true);
-    getPromise()
-      .then(setResult)
-      .catch(setError)
-      .finally(() => setIsLoading(false));
-  }, [getPromise]);
-
-  return { result, isLoading, error };
-}
-
-function Page({ getClass }: { getClass: (name: string) => Promise<ClassDoc> }) {
-  const navigation = useNavigation();
-
-  if (navigation.path === "/") {
-    return <>Home</>;
-  }
-
-  return <ClassPage getClass={getClass} />;
-}
-
-function ClassPage({
-  getClass
-}: {
-  getClass: (name: string) => Promise<ClassDoc>;
-}) {
-  const navigation = useNavigation();
-
-  const { isLoading, error, result } = usePromise(
-    useCallback(() => getClass(navigation.path.slice(1)), [
-      getClass,
-      navigation.path
-    ])
-  );
-
-  if (isLoading) {
-    return <>Loading...</>;
-  }
-
-  if (error != null) {
-    return <PageHeading>{error.message}</PageHeading>;
-  }
-
-  return <PageHeading>{result!.name.name}</PageHeading>;
 }

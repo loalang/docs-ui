@@ -5,9 +5,15 @@ const HtmlWebpackHarddiskPlugin = require("html-webpack-harddisk-plugin");
 module.exports = {
   entry: "./src/Local/index.tsx",
   output: {
-    filename: "bundle.js",
+    filename: "[name].[contenthash].js",
+    chunkFilename: "[name].[chunkhash].js",
     path: path.resolve(__dirname, ".local"),
     publicPath: "/"
+  },
+  optimization: {
+    splitChunks: {
+      chunks: "all"
+    }
   },
   module: {
     rules: [
